@@ -67,11 +67,10 @@ function instantiateMbox(outputDir, dryRun, subDirs) {
 			var myFile, fileToWrite;
 			if (data.type === "attachment" && data.filename) {
 				var filename = data.filename;
-				if (process.platform != "win32") {
-					filename = filename.replace(/\//g, "-");
-				}
-				fileToWrite = path.join(currentDir, filename);
-				console.log(filename);
+				var sanitized = filename.replace(/[^\w\-. ]/g, "_");
+
+				fileToWrite = getAvailableFilename(path.join(currentDir, sanitized));
+				console.log(sanitized);
 				if (!dryRun) {
 					myFile = fs.createWriteStream(fileToWrite);
 					data.content.pipe(myFile);
@@ -83,6 +82,22 @@ function instantiateMbox(outputDir, dryRun, subDirs) {
 		mailParser.end();
 	});
 	return mbox;
+}
+
+function getAvailableFilename(filepath) {
+	const dir = path.dirname(filepath);
+	const ext = path.extname(filepath);
+	const base = path.basename(filepath, ext);
+  
+	let candidate = filepath;
+	let counter = 1;
+  
+	while (fs.existsSync(candidate)) {
+	  candidate = path.join(dir, `${base}_${counter}${ext}`);
+	  counter++;
+	}
+  
+	return candidate;
 }
 
 function pad(num) {
